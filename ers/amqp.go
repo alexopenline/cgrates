@@ -139,7 +139,7 @@ func (rdr *AMQPER) Serve() (err error) {
 
 	var msgChan <-chan amqp.Delivery
 	if msgChan, err = rdr.channel.Consume(rdr.queueID, rdr.tag,
-		false, false, false, true, nil); err != nil {
+		true, false, false, true, nil); err != nil {
 		return
 	}
 	go rdr.readLoop(msgChan) // read until the connection is closed
