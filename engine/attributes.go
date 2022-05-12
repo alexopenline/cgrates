@@ -482,7 +482,7 @@ func ParseAttribute(dp utils.DataProvider, attrType, path string, value config.R
 			return
 		}
 		out = val + pathVal
-	case utils.MetaSuffix:
+	case utils.MetaTrimPrefix:
 		var pathRsr config.RSRParsers
 		pathRsr, err = config.NewRSRParsers(path, rsrSep)
 		if err != nil {
@@ -496,7 +496,22 @@ func ParseAttribute(dp utils.DataProvider, attrType, path string, value config.R
 		if val, err = value.ParseDataProvider(dp); err != nil {
 			return
 		}
-		out = pathVal + val
+		out = strings.TrimPrefix(pathVal, val)
+	case utils.MetaTrimSuffix:
+		var pathRsr config.RSRParsers
+		pathRsr, err = config.NewRSRParsers(path, rsrSep)
+		if err != nil {
+			return
+		}
+		var pathVal string
+		if pathVal, err = pathRsr.ParseDataProvider(dp); err != nil {
+			return
+		}
+		var val string
+		if val, err = value.ParseDataProvider(dp); err != nil {
+			return
+		}
+		out = strings.TrimSuffix(pathVal, val)
 	case utils.MetaCCUsage:
 		if len(value) != 3 {
 			return nil, fmt.Errorf("invalid arguments <%s> to %s",
