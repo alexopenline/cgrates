@@ -266,6 +266,72 @@ func (apiv2 *APIerSv2) GetDestinations(attr *AttrGetDestinations, reply *[]*engi
 	return
 }
 
+type AttrGetDestinationsCustom struct {
+	PrefixID string
+}
+
+// GetDestinationsWithIdPrefixed returns a list of destination where destination id starts with given prefix
+func (apiv2 *APIerSv2) GetDestinationsWithIdPrefixed(attr *AttrGetDestinationsCustom, reply *[]*engine.Destination) (err error) {
+	DestinationIDs, err := GetDestinationIDsStartingWith(attr.PrefixID, err, apiv2)
+	if err != nil {
+		return utils.NewErrServerError(err)
+	}
+
+	dests := make([]*engine.Destination, len(DestinationIDs))
+	for i, destID := range DestinationIDs {
+		if dests[i], err = apiv2.DataManager.GetDestination(destID, true, true, utils.NonTransactional); err != nil {
+			return
+		}
+	}
+	*reply = dests
+	return
+}
+
+func GetDestinationIDsStartingWith(prefix string, err error, apiv2 *APIerSv2) ([]string, error) {
+	var DestinationIDs []string
+	if DestinationIDs, err = apiv2.DataManager.DataDB().GetKeysForPrefix(utils.DestinationPrefix); err != nil {
+		return DestinationIDs, err
+	}
+	for i, destID := range DestinationIDs {
+		DestinationIDs[i] = destID[len(utils.DestinationPrefix):]
+	}
+
+	isValid := func(dest string) bool { return strings.HasPrefix(dest, prefix) }
+
+	i := 0 // output index
+	for _, dest := range DestinationIDs {
+		if isValid(dest) {
+			// copy and increment index
+			DestinationIDs[i] = dest
+			i++
+		}
+	}
+	DestinationIDs = DestinationIDs[:i]
+	return DestinationIDs, nil
+}
+
+type AttrRemoveDestinationsCustom struct {
+	PrefixID string
+}
+
+// RemoveDestinationsWithIdPrefixed remove all destinations where destination id starts with given prefix
+func (apiv2 *APIerSv2) RemoveDestinationsWithIdPrefixed(attr *AttrRemoveDestinationsCustom, reply *string) (err error) {
+	if attr.PrefixID == utils.EmptyString {
+		err = utils.ErrMandatoryIeMissingNoCaps
+		return
+	}
+	DestinationIDs, err := GetDestinationIDsStartingWith(attr.PrefixID, err, apiv2)
+	if err != nil {
+		return utils.NewErrServerError(err)
+	}
+
+	err = apiv2.APIerSv1.RemoveDestination(&v1.AttrRemoveDestination{DestinationIDs: DestinationIDs}, reply)
+	if err != nil {
+		return err
+	}
+	return
+}
+
 func (apiv2 *APIerSv2) SetActions(attrs *utils.AttrSetActions, reply *string) error {
 	if missing := utils.MissingStructFields(attrs, []string{"ActionsId", "Actions"}); len(missing) != 0 {
 		return utils.NewErrMandatoryIeMissing(missing...)

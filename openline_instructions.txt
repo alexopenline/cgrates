@@ -1,0 +1,13 @@
+Below are the instructions to generate image from code for installation in AWS:
+
+1. Build CGRateS from Source
+./build.sh
+
+2. Create Debian / Ubuntu Packages from Source
+cd ..
+rm -f cgrates_0.11.0*
+cd -
+cd packages/
+make deb
+
+3. copy deb file from workspace root folder into openline-rating project
